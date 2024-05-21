@@ -1,0 +1,4 @@
+Flask==3.0.3
+Flask-APScheduler==1.13.1
+Flask-Cors==4.0.1
+flask-socketio==5.3.6
