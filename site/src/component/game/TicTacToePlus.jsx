@@ -39,7 +39,7 @@ const TicTacToePlus = (props) => {
                     </div>
 
                 }
-                {(!Array.isArray(state) || props.status === 'Completed') &&
+                {(props.status === 'Completed') &&
                     <div className="flex flex-col items-center justify-around h-[4.5rem]">
                         <div>
                             Winner:
@@ -71,7 +71,7 @@ const TicTacToePlus = (props) => {
                                             active={nextTurn === null || (key === nextTurn.row && index === nextTurn.column)}
                                             cross={cross}
                                             fields={i}
-                                            canMove={props.player.move}
+                                            canMove={props.status === 'In Progress' && props.player.move}
                                             handleMove={props.handleMove}
                                             history={props.history[key][index]}
                                         />

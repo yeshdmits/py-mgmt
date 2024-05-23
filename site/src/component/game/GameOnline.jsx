@@ -11,7 +11,7 @@ const GameOnline = () => {
     const [searchParams] = useSearchParams();
     const [playerLeft, setPlayerLeft] = useState(false);
     const [gameData, setData] = useState(null)
-    const [active, setActive] = useState(false);
+    const [active, setActive] = useState(gameData && gameData.status === 'In Progress');
     const socket = useSocket();
 
     const handleMove = (row, column, innerRow, innerColumn) => {
@@ -44,6 +44,7 @@ const GameOnline = () => {
             if (!gameData) {
                 socket.emit('load_game', searchParams.get('gameId'));
                 socket.on("bothConnected", (data => {
+                    console.log(data)
                     setPlayerLeft(false)
                     setData(data)
                     setActive(data.status !== 'Completed')

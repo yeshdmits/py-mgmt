@@ -6,12 +6,15 @@ const Timer = (props) => {
     useEffect(() => {
         if (props.isActive) {
             if (seconds <= 0) {
+                clearInterval(intervalRef);
                 props.handleEndGame();
             } else {
                 setIntervalRef(setInterval(() => {
                     setSeconds((props.expireAt - new Date()) / 1000);
                 }, 1000))
             }
+        } else {
+            clearInterval(intervalRef);
         }
     })
 
@@ -20,6 +23,7 @@ const Timer = (props) => {
             clearInterval(intervalRef);
             return '00:00';
         }
+
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = Math.floor(seconds % 60);
 
@@ -31,7 +35,7 @@ const Timer = (props) => {
 
     return (
         <div className="timer-display">
-            <h1>{formatSeconds(seconds)}s</h1>
+            <h1>{formatSeconds(seconds)}</h1>
         </div>
     );
 }

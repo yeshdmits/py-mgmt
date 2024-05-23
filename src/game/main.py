@@ -1,8 +1,7 @@
 from flask import Flask, request, render_template
-from flask_apscheduler import APScheduler
 from flask_cors import CORS
 from flask_socketio import SocketIO, Namespace, emit
-import game;
+from game import disconnect_player_by_id, create_game, get_game_by_id, connectPlayer, move_game
 
 app = Flask(__name__, static_folder="../../site/dist/assets", template_folder="../../site/dist")
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -14,34 +13,33 @@ class GameNamespace(Namespace):
 
     def on_disconnect(self):
         print("Client disconnected")
-        result = game.disconnect_player_by_id(request.sid)
-        if result:
+        result = disconnect_player_by_id(request.sid)
+        if result and result.status != 'Completed':
             if result.gameContext.player1.connected:
-                emit('playerLeft', result.toJSON(), to=result.gameContext.player1.playerSid)
-            else:
-                emit('playerLeft', result.toJSON(), to=result.gameContext.player2.playerSid)
+                emit('playerLeft', result.to_dict(), to=result.gameContext.player1.playerSid)
+            elif result.gameContext.player2.connected:
+                emit('playerLeft', result.to_dict(), to=result.gameContext.player2.playerSid)
         
     def on_create_game(self):
-        result = game.create_game()
-        emit('created', result.id, to=request.sid)
+        result = create_game(request.sid)
+        emit('created', result, to=request.sid)
 
     def on_load_game(self, data):
-        result = game.get_game_by_id(data)
-        if not result:
-            self.handleNotFoundError(data, request.sid)
+        game_db = get_game_by_id(data)
+        
+        if game_db.status == 'Completed':
+            emit('bothConnected', game_db.to_dict(), to=request.sid)
             return
         
-        if result.status == 'Completed':
-            emit('bothConnected', result.toJSON(), to=request.sid)
-            return
-        if result.gameContext.allConnected() or result.connectPlayer(request.sid):
+        result = connectPlayer(game_db, request.sid)
+        if result:
             player1Context = result.getPlayer1Context()
             emit('bothConnected', player1Context, to=player1Context["player"]["sid"])
             player2Context = result.getPlayer2Context()
             emit('bothConnected', player2Context, to=player2Context["player"]["sid"])
 
     def on_move(self, data):
-        result = game.move_game(data["gameId"], data["move"], request.sid)
+        result = move_game(data["gameId"], data["move"], request.sid)
         if result:
             player1Context = result.getPlayer1Context()
             emit('playerMoved', player1Context, to=player1Context["player"]["sid"])
@@ -59,7 +57,6 @@ class GameNamespace(Namespace):
 
 socketio.on_namespace(GameNamespace('/game'))
 
-CORS(app)
 
 @app.route("/")
 def hello_world():
