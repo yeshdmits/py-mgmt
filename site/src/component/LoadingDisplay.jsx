@@ -1,20 +1,30 @@
-import React, { useEffect, useState } from "react";
-import { useSearchParams } from 'react-router-dom';
+import React, {  useEffect, useState } from "react";
+import { useNavigate, useSearchParams, createSearchParams } from 'react-router-dom';
 import { useSocket } from "../context/SocketContext";
 import GameId from "./GameId";
-import { useCookies } from 'react-cookie';
 
 const LoadingDisplay = () => {
     const [searchParams] = useSearchParams();
     const [gameId, setGameId] = useState('');
     const [isKeyboardOpen] = useState(true);
     const socket = useSocket();
-    const [cookies, setCookie] = useCookies(['tictactoe']);
+    const navigate = useNavigate()
 
     const getGame = () => {
-        setCookie("tictactoe", null)
-        socket.emit('load_game', gameId);
+        navigate({
+            pathname: "/play",
+            search: `?${createSearchParams({
+                gameId: gameId
+            })}`
+        })
     };
+
+    useEffect(() => {
+        if (socket && searchParams.get('gameId')) {
+            console.log(searchParams.get('gameId'))
+            socket.emit('load_game', searchParams.get('gameId'));
+        }
+    }, [])
 
     if (searchParams.get('gameId')) {
 

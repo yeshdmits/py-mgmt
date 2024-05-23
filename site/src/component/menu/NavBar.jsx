@@ -1,19 +1,16 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { useNavigate, createSearchParams } from "react-router-dom";
-import { useSwipeable } from 'react-swipeable';
 import { useSocket } from "../../context/SocketContext";
-import { useCookies } from "react-cookie";
 
-const NavBar = () => {
-    const [isNavOpen, setIsNavOpen] = useState(false);
+const NavBar = (props) => {
     const socket = useSocket()
     const navigate = useNavigate();
-    // const [setCookie] = useCookies(['tictactoe']);
+    const navRef = useRef(null);
 
     const createGame = () => {
         socket.emit('create_game');
         socket.on("created", (data => {
-            setIsNavOpen(false);
+            props.setIsNavOpen(false);
             navigate({
                 pathname: "/join",
                 search: `?${createSearchParams({
@@ -24,28 +21,34 @@ const NavBar = () => {
     };
 
     const joinGame = () => {
-        setIsNavOpen(false)
+        props.setIsNavOpen(false)
         navigate("/join")
     };
 
     const mainMenu = () => {
-        setIsNavOpen(false)
+        props.setIsNavOpen(false)
         navigate("/")
     };
 
-    const handlers = useSwipeable({
-        onSwipedLeft: () => setIsNavOpen(false),
-        onSwipedRight: () => setIsNavOpen(true),
-        preventDefaultTouchmoveEvent: true,
-        trackMouse: true
-    });
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (navRef.current && !navRef.current.contains(event.target)) {
+                props.setIsNavOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [navRef])
 
     return (
-        <div {...handlers} className="bg-gray-100 flex flex-col items-center">
+        <div className="bg-gray-100 flex flex-col items-center">
             <div className="w-full bg-amber-500 p-1 text-white flex justify-around items-center shadow-md">
                 <button
                     className="text-white text-2xl focus:outline-none"
-                    onClick={() => setIsNavOpen(!isNavOpen)}
+                    onClick={() => props.setIsNavOpen(!props.isNavOpen)}
                 >
                     ☰
                 </button>
@@ -53,10 +56,10 @@ const NavBar = () => {
                     Tic-tac-toe Plus
                 </span>
             </div>
-            <nav className={`fixed top-0 left-0 h-full bg-white shadow-md transform ${isNavOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 z-20`}>
+            <nav ref={navRef} className={`fixed top-0 left-0 h-full bg-white shadow-md transform ${props.isNavOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 z-20`}>
                 <button
                     className="p-4 text-gray-600 text-2xl focus:outline-none"
-                    onClick={() => setIsNavOpen(false)}
+                    onClick={() => props.setIsNavOpen(false)}
                 >
                     ×
                 </button>

@@ -1,17 +1,8 @@
 import uuid
 from datetime import datetime, timedelta
-import schedule
+from flask_apscheduler import APScheduler
 
 games = []
-
-def clear():
-    print("Start cleaning")
-    for game in games[:]:
-        if datetime.now() >= game.expireAt:
-            games.remove(game)
-
-
-schedule.every(10).seconds.do(clear)
 
 def all_games():
     return [game.toJSON() for game in games]
@@ -26,7 +17,6 @@ def get_game_by_id(game_uid):
     for game in games:
         if game.id == game_uid:
             return game
-
     return False
 
 def disconnect_player_by_id(player_sid):
@@ -34,12 +24,13 @@ def disconnect_player_by_id(player_sid):
         if game.playerExistsBySid(player_sid):
             game.disconnectPlayer(player_sid)
             return game
-
     return False
 
-def move_game(game_uid, data):
+def move_game(game_uid, data, playerSid):
     for game in games:
         if game.id == game_uid:
+            if not game.canPlayerMove(playerSid):
+                return False
             result = game.move(data.get("row"), data.get("column"), data.get("innerRow"), data.get("innerColumn"))
             if result == 0:
                 return False
@@ -49,12 +40,17 @@ def move_game(game_uid, data):
 
 class Game:
     def __init__(self):
+        self.scheduler = APScheduler()
+        self.scheduler.start()
+        self.status = 'In Progress'
         self.id = uuid.uuid4().hex # unique id of the game session
         self.createdAt = datetime.now() # date-time of starting
         self.expireAt = datetime.now() + timedelta(minutes=30) # expiration date of the game
         self.step = 1 # player move [1/-1]
         self.nextMove = None
         self.gameContext = GameContext()
+        self.schedule_function(self.expireAt)
+        self.winner = 0
         self.state = [
     [
         [[0, 0, 0],[0, 0, 0],[0, 0, 0]], 
@@ -89,26 +85,65 @@ class Game:
         [[0, 0, 0],[0, 0, 0],[0, 0, 0]]
     ]
 ]
+        
+    def autoComplete(self):
+        self.status = 'Completed'
+
+    def schedule_function(self, run_time):
+        self.scheduler.add_job(id=self.id, func=self.autoComplete, trigger='date', run_date=run_time)
 
     def playerExistsBySid(self, sid):
+        if self.status == 'Completed':
+            return False
         return self.gameContext.player1.playerSid == sid or self.gameContext.player2.playerSid
+    
+    def canPlayerMove(self, sid):
+        if self.gameContext.player1.playerSid == sid:
+            return self.gameContext.player1.playerMove
+        if self.gameContext.player2.playerSid == sid:
+            return self.gameContext.player2.playerMove
+        return False
 
     def connectPlayer(self, sid):
+        if self.gameContext.allConnected():
+            return False
+        
         self.gameContext.connect(sid)
+        self.expireAt = self.createdAt + timedelta(minutes=30)
+
+        if self.scheduler.get_job(self.id):
+            self.scheduler.remove_job(self.id)
+            self.schedule_function(self.expireAt)
+
         result = self.gameContext.allConnected()
         if result and not self.gameContext.started():
             self.gameContext.player1.playerMove = True
+
         return result
     
     def disconnectPlayer(self, sid):
+        if self.status == 'Completed':
+            return False
+        
         player = self.gameContext.getBySid(sid)
         if player:
             player.connected = False
+            self.expireAt = datetime.now() + timedelta(seconds=30)
+            if self.scheduler.get_job(self.id):
+                self.scheduler.remove_job(self.id)
+                self.schedule_function(self.expireAt)
             return True
-        return False
         
-
+        return False
+    
     def move(self, row, column, i, j):
+        if self.status == 'Completed':
+            return 0
+        
+        if self.nextMove:
+            if self.nextMove['row'] != row or self.nextMove['column'] != column:
+                return 0
+
         if self.state[row][column][i][j] == 0:
             self.state[row][column][i][j] = self.step
             self.historyState[row][column][i][j] = self.step
@@ -117,7 +152,8 @@ class Game:
                 self.state[row][column] = winnerInner
                 winner = self.checkWinner(self.state)
                 if winner != None:
-                    self.state = winner
+                    self.winner = winner
+                    self.status = 'Completed'
                     return 1
             if self.state[i][j] == 1 or self.state[i][j] == -1:
                 self.nextMove = None
@@ -142,6 +178,8 @@ class Game:
             "state": self.state,
             "nextMove": self.nextMove,
             "historyState": self.historyState,
+            "status": self.status,
+            "winner": self.winner,
             "player": {
                 "move": self.gameContext.player1.playerMove,
                 "sid": self.gameContext.player1.playerSid
@@ -157,6 +195,8 @@ class Game:
             "state": self.state,
             "nextMove": self.nextMove,
             "historyState": self.historyState,
+            "status": self.status,
+            "winner": self.winner,
             "player": {
                 "move": self.gameContext.player2.playerMove,
                 "sid": self.gameContext.player2.playerSid
@@ -170,7 +210,14 @@ class Game:
             "expireAt": self.expireAt.isoformat(),
             "step": self.step,
             "state": self.state,
-            "nextMove": self.nextMove
+            "nextMove": self.nextMove,
+            "historyState": self.historyState,
+            "status": self.status,
+            "winner": self.winner,
+            "player": {
+                "move": False,
+                "sid": ''
+            }
         }
     
     def checkWinnerInner(self, fields):
@@ -245,12 +292,13 @@ class GameContext:
     def connect(self, sid):
         if self.player1.connected and self.player2.connected:
             return False
-        if self.player1.connected:
-            self.player2.playerSid = sid
-            self.player2.connected = True
-        else:
+        if not self.player1.connected and not self.player2.playerSid == sid:
             self.player1.playerSid = sid
             self.player1.connected = True
+        elif not self.player2.connected and not self.player1.playerSid == sid:
+            self.player2.playerSid = sid
+            self.player2.connected = True
+    
 
     def started(self):
         return self.player1.playerMove or self.player2.playerMove

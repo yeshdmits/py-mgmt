@@ -39,28 +39,29 @@ const TicTacToePlus = (props) => {
                     </div>
 
                 }
-                {!Array.isArray(state) &&
+                {(!Array.isArray(state) || props.status === 'Completed') &&
                     <div className="flex flex-col items-center justify-around h-[4.5rem]">
                         <div>
                             Winner:
                         </div>
                         <div>
-                            {state === 1 ?
+                            {props.winner === 1 ?
                                 <Cross width='24px' height='24px' fill="#d9004c" />
-                                :
+                                : props.winner === -1 ?
                                 <Circle width='24px' height='24px' fill="#0033aa" stroke="#0033aa" strokeWidth={0} />
+                                : "Draw"
                             }
                         </div>
                     </div>
                 }
             </div>
             <div className="grid grid-rows-3 divide-y divide-zinc-700">
-                {Array.isArray(state) && state.map((item, key) => {
+                {state.map((item, key) => {
                     return (
                         <div className="grid grid-cols-3 divide-x divide-zinc-700 auto-cols-max max-h-32" key={"highout" + key}>
                             {item.map((i, index) => {
                                 return (
-                                    <div className={nextTurn === null || (key === nextTurn.row && index === nextTurn.column) ?
+                                    <div className={(nextTurn === null || (key === nextTurn.row && index === nextTurn.column)) && props.status !== 'Completed' ?
                                         "grid grid-rows-1 justify-center bg-teal-100 max-h-32" :
                                         "grid grid-rows-1 justify-center max-h-32"}
                                         key={"highin" + index}>
