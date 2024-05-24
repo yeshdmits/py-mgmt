@@ -7,6 +7,7 @@ import LoadingDisplay from './component/LoadingDisplay';
 import GameOnline from './component/game/GameOnline';
 import { SocketProvider } from './context/SocketContext';
 import { useSwipeable } from 'react-swipeable';
+import GameList from './component/game/GameList';
 
 const App = () => {
   const [isNavOpen, setIsNavOpen] = useState(false);
@@ -33,6 +34,9 @@ const App = () => {
                 } />
                 <Route path="/join" element={
                   <LoadingDisplay />
+                } />
+                <Route path="/games" element={
+                  <GameList isNavOpen={isNavOpen} />
                 } />
               </Routes>
             </main>

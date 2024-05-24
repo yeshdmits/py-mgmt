@@ -4,8 +4,8 @@ import repository
 
 games = []
 
-def all_games():
-    return [game.toJSON() for game in games]
+def fetch_list():
+    return repository.read_all()
 
 def create_game(player_sid):
     return repository.create(player_sid)

@@ -1,7 +1,7 @@
 from flask import Flask, request, render_template
 from flask_cors import CORS
 from flask_socketio import SocketIO, Namespace, emit
-from game import disconnect_player_by_id, create_game, get_game_by_id, connectPlayer, move_game
+from game import disconnect_player_by_id, create_game, get_game_by_id, connectPlayer, move_game, fetch_list
 
 app = Flask(__name__, static_folder="../../site/dist/assets", template_folder="../../site/dist")
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -10,6 +10,10 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 class GameNamespace(Namespace):
     def on_connect(self):
         print(f"Client connected: [{request.sid}]")
+
+    def on_fetch_list(self):
+        result = fetch_list()
+        emit('games', result, to=request.sid)
 
     def on_disconnect(self):
         print("Client disconnected")

@@ -9,6 +9,24 @@ client = MongoClient(uri)
 database = client.get_database("mongo-example")
 games = database.get_collection("games")
 
+def read_all():
+    projection = {
+        "_id": 1,
+        "createdAt": 1,
+        "expireAt": 1,
+        "status": 1,
+        "winner": 1,
+        "gameContext": 1
+    }
+
+    # cursor = games.find({}, projection)
+    results = []
+    cursor = games.find()
+    for i in cursor:
+        results.append(Game.from_dict(i).to_transfer())
+
+    return results
+
 def create(player_sid):
     try:
         result = findByPlayer(player_sid)
@@ -30,8 +48,6 @@ def read(id):
         query = { "_id": ObjectId(id) }
         result = games.find_one(query)
         game = Game.from_dict(result)
-        if game.status == 'In Progress' and game.expireAt < datetime.now():
-            game.status = 'Completed'
 
         return game
     except Exception as e:
@@ -59,8 +75,6 @@ def findByPlayer(playerSid):
         result = games.find_one(query)
         
         if result:
-            if result.expireAt < datetime.now():
-                result.status = 'Completed'
             return Game.from_dict(result)
         return result
     except Exception as e:
@@ -75,13 +89,19 @@ class Game:
                  createdAt=datetime.now(), 
                  expireAt=datetime.now() + timedelta(minutes=30), 
                  step=1, 
-                 nextMove=None, gameContext=None, winner=0, state=None, historyState=None):
+                 nextMove=None, 
+                 gameContext=None, 
+                 winner=0, 
+                 state=None, 
+                 historyState=None, startedAt=None, finishedAt=None):
         self.status = status
         self.id = id
         self.createdAt = createdAt
         self.expireAt = expireAt
         self.step = step
         self.nextMove = nextMove
+        self.startedAt = startedAt
+        self.finishedAt = finishedAt
         if gameContext:
             self.gameContext = gameContext
         else:
@@ -104,6 +124,17 @@ class Game:
                 [[[0, 0, 0],[0, 0, 0],[0, 0, 0]], [[0, 0, 0],[0, 0, 0],[0, 0, 0]], [[0, 0, 0],[0, 0, 0],[0, 0, 0]]], 
                 [[[0, 0, 0],[0, 0, 0],[0, 0, 0]], [[0, 0, 0],[0, 0, 0],[0, 0, 0]], [[0, 0, 0],[0, 0, 0],[0, 0, 0]]]
             ]
+    
+    def to_transfer(self):
+        return {
+            "id": str(self.id),
+            "createdAt": self.createdAt.isoformat(),
+            "expireAt": self.expireAt.isoformat(),
+            "status": self.status,
+            "winner": self.winner,
+            "gameContext": self.gameContext.to_dict(),
+            "state": self.state
+        }
         
     def to_dict(self):
         return {

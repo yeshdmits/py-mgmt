@@ -16,7 +16,7 @@ const HistoryItem = (props) => {
                 </div>
 
                 <div className="relative opacity-30 grid grid-rows-3 divide-y divide-blue-200">
-                    {
+                    {   props.history && 
                         props.history.map((item, key) => {
                             return (
                                 <div className="grid grid-cols-3 divide-x divide-blue-200" key={"out" + key}>

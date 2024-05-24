@@ -30,21 +30,13 @@ const NavBar = (props) => {
         navigate("/")
     };
 
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (navRef.current && !navRef.current.contains(event.target)) {
-                props.setIsNavOpen(false);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [navRef])
+    const allGames = () => {
+        props.setIsNavOpen(false)
+        navigate("/games")
+    }
 
     return (
-        <div className="bg-gray-100 flex flex-col items-center">
+        <div className="bg-gray-100 flex flex-col items-center sticky w-full top-0 left-0 right-0'">
             <div className="w-full bg-amber-500 p-1 text-white flex justify-around items-center shadow-md">
                 <button
                     className="text-white text-2xl focus:outline-none"
@@ -70,6 +62,8 @@ const NavBar = (props) => {
                         className="p-4 border-b hover:cursor-pointer">Create Game</li>
                     <li onClick={joinGame}
                         className="p-4 border-b hover:cursor-pointer">Join Game</li>
+                    <li onClick={allGames}
+                        className="p-4 border-b hover:cursor-pointer">All Games</li>
                 </ul>
             </nav>
 
