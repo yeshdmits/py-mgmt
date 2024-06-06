@@ -21,8 +21,17 @@ const LoadingDisplay = () => {
 
     useEffect(() => {
         if (socket && searchParams.get('gameId')) {
-            console.log(searchParams.get('gameId'))
             socket.emit('load_game', searchParams.get('gameId'));
+        } else {
+            socket.emit('create_game', true);
+            socket.on("created", (data => {
+                navigate({
+                    pathname: "/play",
+                    search: `?${createSearchParams({
+                        gameId: data
+                    })}`
+                })
+            }))
         }
     }, [])
 

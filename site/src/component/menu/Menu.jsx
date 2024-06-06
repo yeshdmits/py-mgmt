@@ -7,7 +7,7 @@ const Menu = () => {
     const socket = useSocket();
 
     const createGame = () => {
-        socket.emit('create_game');
+        socket.emit('create_game', false);
         socket.on("created", (data => {
             navigate({
                 pathname: "/join",

@@ -41,7 +41,9 @@ const GameOnline = () => {
     useEffect(() => {
         setPlayerLeft(false);
         if (socket) {
+            socket.connect();
             if (!gameData) {
+                console.log(gameData)
                 socket.emit('load_game', searchParams.get('gameId'));
                 socket.on("bothConnected", (data => {
                     console.log(data)
@@ -84,7 +86,7 @@ const GameOnline = () => {
             winner={gameData.winner}
             gameId={<GameId gameId={searchParams.get('gameId')} />}
         >
-            <Timer isActive={active} expireAt={new Date(gameData.expireAt)} handleEndGame={handleEndGame}/>
+            <Timer isActive={active} expireAt={new Date(gameData.expireAt)} handleEndGame={handleEndGame} />
         </TicTacToePlus>
     )
 }

@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate, createSearchParams } from "react-router-dom";
 import { useSocket } from "../../context/SocketContext";
 
 const GameList = (props) => {
-    const socket = useSocket();
     const [dataList, setDataList] = useState([])
+    const navigate = useNavigate()
+    const socket = useSocket()
 
     const formatISODate = (isoString) => {
         const date = new Date(isoString);
@@ -35,17 +37,27 @@ const GameList = (props) => {
         if (props.isNavOpen) {
             return;
         }
-        console.log(item)
+        // socket.emit('load_game', searchParams.get('gameId'));
+        navigate({
+            pathname: "/play",
+            search: `?${createSearchParams({
+                gameId: item.id
+            })}`
+        })
     }
 
     useEffect(() => {
-        if (socket) {
-            socket.emit('fetch_list');
-            socket.on("games", (data => {
-                console.log("Called")
+        async function fetchData() {
+            try {
+                const response = await fetch('http://localhost:5000/api/list');
+                const data = await response.json();
                 setDataList(data)
-            }))
+            } catch (error) {
+                console.error('Error fetching data from REST API:', error);
+            }
         }
+        
+        fetchData()
     }, [])
 
     return (

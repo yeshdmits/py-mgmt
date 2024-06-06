@@ -1,6 +1,5 @@
 from pymongo import MongoClient
 from datetime import datetime, timedelta
-import uuid
 from bson import ObjectId
 
 uri = "mongodb://localhost:27017/"
@@ -10,16 +9,6 @@ database = client.get_database("mongo-example")
 games = database.get_collection("games")
 
 def read_all():
-    projection = {
-        "_id": 1,
-        "createdAt": 1,
-        "expireAt": 1,
-        "status": 1,
-        "winner": 1,
-        "gameContext": 1
-    }
-
-    # cursor = games.find({}, projection)
     results = []
     cursor = games.find()
     for i in cursor:
@@ -27,7 +16,7 @@ def read_all():
 
     return results
 
-def create(player_sid):
+def create(player_sid, isBotPlayer):
     try:
         result = findByPlayer(player_sid)
         if result:
@@ -36,7 +25,7 @@ def create(player_sid):
             toUpdate = { "$set": result.to_dict() }
             games.update_one(query, toUpdate)
 
-        to_save = Game().to_dict()
+        to_save = Game(isBotPlayer=isBotPlayer).to_dict()
         insertedId = games.insert_one(to_save).inserted_id
 
         return str(insertedId)
@@ -80,6 +69,19 @@ def findByPlayer(playerSid):
     except Exception as e:
         raise Exception("Database error")
     
+def autoComplete():
+    query = { 
+            "status": 'In Progress',
+            "expireAt": { "$lt": datetime.now().isoformat()}
+        }
+    update = {"$set": {"status": "Completed"}}
+    result = games.update_many(query, update)
+    print("Number of documents updated:", result.modified_count)
+
+# Utils
+def round_to_nearest_minute(dt):
+    return dt + timedelta(seconds=(60 - dt.second) % 60)
+
 
 # Entity
 
@@ -87,25 +89,34 @@ class Game:
     def __init__(self, status='In Progress', 
                  id=None, 
                  createdAt=datetime.now(), 
-                 expireAt=datetime.now() + timedelta(minutes=30), 
+                 expireAt=datetime.now() + timedelta(minutes=60), 
                  step=1, 
                  nextMove=None, 
                  gameContext=None, 
                  winner=0, 
                  state=None, 
-                 historyState=None, startedAt=None, finishedAt=None):
+                 historyState=None, 
+                 startedAt=None, 
+                 finishedAt=None, 
+                 isBotPlayer=False):
+        self.isBotPlayer = isBotPlayer
         self.status = status
         self.id = id
-        self.createdAt = createdAt
-        self.expireAt = expireAt
+        self.createdAt = round_to_nearest_minute(createdAt)
+        self.expireAt = round_to_nearest_minute(expireAt)
         self.step = step
         self.nextMove = nextMove
-        self.startedAt = startedAt
-        self.finishedAt = finishedAt
         if gameContext:
             self.gameContext = gameContext
+        elif isBotPlayer:
+            self.gameContext = GameContext(player2=GameContextPlayer(connected=True))
         else:
             self.gameContext = GameContext()
+
+        if finishedAt:
+            self.finishedAt = round_to_nearest_minute(finishedAt)
+        if startedAt:
+            self.startedAt = round_to_nearest_minute(startedAt)
 
         self.winner = winner
         if state:
@@ -141,12 +152,15 @@ class Game:
             "id": str(self.id),
             "createdAt": self.createdAt.isoformat(),
             "expireAt": self.expireAt.isoformat(),
+            "createdAt": self.createdAt.isoformat(),
+            "expireAt": self.expireAt.isoformat(),
             "step": self.step,
             "state": self.state,
             "nextMove": self.nextMove,
             "historyState": self.historyState,
             "status": self.status,
             "winner": self.winner,
+            "isBotPlayer": self.isBotPlayer,
             "gameContext": self.gameContext.to_dict()
         }
     
@@ -162,6 +176,7 @@ class Game:
             historyState=dict_data.get('historyState'),
             status=dict_data.get('status'),
             winner=dict_data.get('winner'),
+            isBotPlayer=dict_data.get('isBotPlayer'),
             gameContext=GameContext.from_dict(dict_data.get('gameContext'))
         )
         

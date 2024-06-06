@@ -1,19 +1,15 @@
 from flask import Flask, request, render_template
 from flask_cors import CORS
 from flask_socketio import SocketIO, Namespace, emit
-from game import disconnect_player_by_id, create_game, get_game_by_id, connectPlayer, move_game, fetch_list
+from game import disconnect_player_by_id, create_game, get_game_by_id, connectPlayer, move_game, read_all, bot_move
 
 app = Flask(__name__, static_folder="../../site/dist/assets", template_folder="../../site/dist")
-socketio = SocketIO(app, cors_allowed_origins="*")
-
+CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="*", async_method='eventlet')
 
 class GameNamespace(Namespace):
     def on_connect(self):
         print(f"Client connected: [{request.sid}]")
-
-    def on_fetch_list(self):
-        result = fetch_list()
-        emit('games', result, to=request.sid)
 
     def on_disconnect(self):
         print("Client disconnected")
@@ -24,8 +20,8 @@ class GameNamespace(Namespace):
             elif result.gameContext.player2.connected:
                 emit('playerLeft', result.to_dict(), to=result.gameContext.player2.playerSid)
         
-    def on_create_game(self):
-        result = create_game(request.sid)
+    def on_create_game(self, data):
+        result = create_game(request.sid, data)
         emit('created', result, to=request.sid)
 
     def on_load_game(self, data):
@@ -39,16 +35,18 @@ class GameNamespace(Namespace):
         if result:
             player1Context = result.getPlayer1Context()
             emit('bothConnected', player1Context, to=player1Context["player"]["sid"])
-            player2Context = result.getPlayer2Context()
-            emit('bothConnected', player2Context, to=player2Context["player"]["sid"])
+            if not result.isBotPlayer:
+                player2Context = result.getPlayer2Context()
+                emit('bothConnected', player2Context, to=player2Context["player"]["sid"])
 
     def on_move(self, data):
         result = move_game(data["gameId"], data["move"], request.sid)
         if result:
             player1Context = result.getPlayer1Context()
             emit('playerMoved', player1Context, to=player1Context["player"]["sid"])
-            player2Context = result.getPlayer2Context()
-            emit('playerMoved', player2Context, to=player2Context["player"]["sid"])
+            if not result.isBotPlayer:
+                player2Context = result.getPlayer2Context()
+                emit('playerMoved', player2Context, to=player2Context["player"]["sid"])
 
     def handleNotFoundError(self, data, sid):
         emit('error', {
@@ -68,8 +66,15 @@ def hello_world():
 @app.errorhandler(404)
 def not_found(e):
     return render_template("index.html")
+@app.route("/api/list")
+def fetch_list():
+    return read_all()
 
+@app.route("/api")
+def random_move():
+    bot_move(request.args.get('id'))
 
+GEVENT_SUPPORT=True
 if __name__ == '__main__':
-    socketio.run(app)
+    socketio.run(app, debug=True, log_output=True)
 

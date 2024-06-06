@@ -14,7 +14,10 @@ export const SocketProvider = ({ children }) => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const newSocket = io('localhost:5000/game');
+        const newSocket = io('localhost:5000/game', {
+            transports: ['websocket'],
+            upgrade: false
+        });
 
         newSocket.on('connect', () => {
             setSocket(newSocket);

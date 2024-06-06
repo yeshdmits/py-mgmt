@@ -1,15 +1,20 @@
 from datetime import datetime, timedelta
-from flask_apscheduler import APScheduler
+# from flask_apscheduler import APScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 import repository
+import automation
 
 games = []
 
-def fetch_list():
+def bot_move(id):
+    game = repository.read(id)
+    automation.random_move(game.state, game.nextMove)
+
+def read_all():
     return repository.read_all()
 
-def create_game(player_sid):
-    return repository.create(player_sid)
-
+def create_game(player_sid, isBotPlayer):
+    return repository.create(player_sid, isBotPlayer)
 
 def get_game_by_id(game_uid):
     return repository.read(game_uid)
@@ -25,23 +30,17 @@ def move_game(game_uid, data, playerSid):
     if canPlayerMove(game_db, playerSid) and game_db.status == 'In Progress':
         result = move(game_db, data.get("row"), data.get("column"), data.get("innerRow"), data.get("innerColumn"))
         if result:
-            return result
+            if not result.isBotPlayer:
+                return result
+            botMove = automation.random_move(result.state, result.nextMove)
+            return move(result, botMove[0], botMove[1], botMove[2], botMove[3])
     return False
 
-scheduler = APScheduler()
-
-def autoComplete(id):
-    result = repository.read(id)
-    result.status = 'Completed'
-    repository.update(result)
-
-def schedule_function(id, expireAt):
-    scheduler.add_job(id=id, func=autoComplete, args=id, trigger='date', run_date=expireAt)
-
-def reschedule_function(id, expireAt):
-    if scheduler.get_job(id):
-        scheduler.remove_job(id)
-        schedule_function(id, expireAt)
+scheduler = BackgroundScheduler()
+def autoComplete():
+    repository.autoComplete()
+scheduler.add_job(autoComplete, trigger='interval', minutes=1)
+scheduler.start()
 
 def playerExistsBySid(gameId, playerSid):
     result = repository.read(gameId)
@@ -69,8 +68,6 @@ def connectPlayer(game, sid):
 
     game.expireAt = game.createdAt + timedelta(minutes=10)
 
-    reschedule_function(game.id, game.expireAt)
-
     connected = game.gameContext.player1.connected and game.gameContext.player2.connected
     if connected and not (game.gameContext.player1.playerMove or game.gameContext.player1.playerMove):
         game.gameContext.player1.playerMove = True
@@ -87,7 +84,6 @@ def disconnectPlayer(game, sid):
     elif game.gameContext.player2.playerSid == sid:
         game.gameContext.player2.connected = False
     game.expireAt = datetime.now() + timedelta(seconds=30)
-    reschedule_function(game.id, game.expireAt)
     return repository.update(game)
 
 def checkWinnerInner(fields):
@@ -142,8 +138,9 @@ def move(game, row, column, i, j):
     else:
         return False
     
-    game.gameContext.player1.playerMove = not game.gameContext.player1.playerMove
-    game.gameContext.player2.playerMove = not game.gameContext.player2.playerMove
+    if not game.isBotPlayer:
+        game.gameContext.player1.playerMove = not game.gameContext.player1.playerMove
+        game.gameContext.player2.playerMove = not game.gameContext.player2.playerMove
     if game.step == 1:
         game.step = -1
     else:

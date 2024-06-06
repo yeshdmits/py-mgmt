@@ -8,7 +8,7 @@ const NavBar = (props) => {
     const navRef = useRef(null);
 
     const createGame = () => {
-        socket.emit('create_game');
+        socket.emit('create_game', false);
         socket.on("created", (data => {
             props.setIsNavOpen(false);
             navigate({
