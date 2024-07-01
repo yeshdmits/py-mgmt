@@ -1,12 +1,21 @@
 from pymongo import MongoClient
 from datetime import datetime, timedelta
 from bson import ObjectId
+import os
+import pytz
 
-uri = "mongodb://localhost:27017/"
-
+mongo_password = os.environ["mongo_password"]
+uri = f"mongodb+srv://game:{mongo_password}@cluster0.brjgrjl.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+print(uri)
 client = MongoClient(uri)
-database = client.get_database("mongo-example")
+database = client.get_database("python-game")
 games = database.get_collection("games")
+
+try:
+    client.admin.command('ping')
+    print("Pinged your deployment. You successfully connected to MongoDB!")
+except Exception as e:
+    print(e)
 
 def read_all():
     results = []
@@ -72,11 +81,18 @@ def findByPlayer(playerSid):
 def autoComplete():
     query = { 
             "status": 'In Progress',
-            "expireAt": { "$lt": datetime.now().isoformat()}
+            "expireAt": { "$lt": datetime.now(pytz.utc).isoformat()}
         }
-    update = {"$set": {"status": "Completed"}}
+    update = {"$set": {"status": "Completed", "gameContext": {"player1": {"connected": False}, "player2": {"connected": False}}}}
     result = games.update_many(query, update)
     print("Number of documents updated:", result.modified_count)
+
+def autoRemove():
+    query = { 
+        "expireAt": { "$lt": (datetime.now(pytz.utc) - timedelta(minutes=60)).isoformat()}
+    }
+    result = games.delete_many(query)
+    print("Number of documents deleted:", result.deleted_count)
 
 # Utils
 def round_to_nearest_minute(dt):
@@ -86,10 +102,9 @@ def round_to_nearest_minute(dt):
 # Entity
 
 class Game:
-    def __init__(self, status='In Progress', 
+    def __init__(self, createdAt=None, expireAt=None,
+                 status='In Progress', 
                  id=None, 
-                 createdAt=datetime.now(), 
-                 expireAt=datetime.now() + timedelta(minutes=60), 
                  step=1, 
                  nextMove=None, 
                  gameContext=None, 
@@ -102,8 +117,14 @@ class Game:
         self.isBotPlayer = isBotPlayer
         self.status = status
         self.id = id
-        self.createdAt = round_to_nearest_minute(createdAt)
-        self.expireAt = round_to_nearest_minute(expireAt)
+        if createdAt:
+            self.createdAt = createdAt
+        else: 
+            self.createdAt = datetime.now(pytz.utc)
+        if expireAt:
+            self.expireAt = expireAt
+        else:
+            self.expireAt = datetime.now(pytz.utc) + timedelta(minutes=60)
         self.step = step
         self.nextMove = nextMove
         if gameContext:
@@ -161,7 +182,8 @@ class Game:
             "status": self.status,
             "winner": self.winner,
             "isBotPlayer": self.isBotPlayer,
-            "gameContext": self.gameContext.to_dict()
+            "gameContext": self.gameContext.to_dict(),
+            "playerLeft": not self.gameContext.player1.connected or not self.gameContext.player2.connected
         }
     
     @classmethod

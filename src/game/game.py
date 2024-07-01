@@ -4,8 +4,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import repository
 import automation
 
-games = []
-
 def bot_move(id):
     game = repository.read(id)
     automation.random_move(game.state, game.nextMove)
@@ -32,6 +30,8 @@ def move_game(game_uid, data, playerSid):
         if result:
             if not result.isBotPlayer:
                 return result
+            if result.status == 'completed':
+                return result
             botMove = automation.random_move(result.state, result.nextMove)
             return move(result, botMove[0], botMove[1], botMove[2], botMove[3])
     return False
@@ -39,7 +39,10 @@ def move_game(game_uid, data, playerSid):
 scheduler = BackgroundScheduler()
 def autoComplete():
     repository.autoComplete()
-scheduler.add_job(autoComplete, trigger='interval', minutes=1)
+def autoRemove():
+    repository.autoRemove()
+# scheduler.add_job(autoComplete, trigger='interval', minutes=1)
+scheduler.add_job(autoRemove, trigger='interval', minutes=1)
 scheduler.start()
 
 def playerExistsBySid(gameId, playerSid):

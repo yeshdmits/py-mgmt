@@ -8,6 +8,7 @@ import GameOnline from './component/game/GameOnline';
 import { SocketProvider } from './context/SocketContext';
 import { useSwipeable } from 'react-swipeable';
 import GameList from './component/game/GameList';
+import { ApiProvider } from './context/ApiContext';
 
 const App = () => {
   const [isNavOpen, setIsNavOpen] = useState(false);
@@ -21,27 +22,26 @@ const App = () => {
   return (
     <>
       <Router>
-        <SocketProvider>
-          <div {...handlers} className="min-h-screen flex flex-col justify-start">
-            <NavBar isNavOpen={isNavOpen} setIsNavOpen={setIsNavOpen} />
-            <main className='flex grow'>
-              <Routes>
-                <Route path="/" element={
-                  <Menu />
-                } />
-                <Route path="/play" element={
-                  <GameOnline />
-                } />
-                <Route path="/join" element={
-                  <LoadingDisplay />
-                } />
-                <Route path="/games" element={
-                  <GameList isNavOpen={isNavOpen} />
-                } />
-              </Routes>
-            </main>
-          </div>
-        </SocketProvider>
+        <ApiProvider>
+          <SocketProvider>
+            <div {...handlers} className="min-h-screen flex flex-col justify-start">
+              <NavBar isNavOpen={isNavOpen} setIsNavOpen={setIsNavOpen} />
+              <main className='flex grow'>
+                <Routes>
+                  <Route path="/" element={
+                    <GameList isNavOpen={isNavOpen}/>
+                  } />
+                  <Route path="/play/:gameId" element={
+                    <GameOnline />
+                  } />
+                  <Route path="/join/:gameId" element={
+                    <LoadingDisplay />
+                  } />
+                </Routes>
+              </main>
+            </div>
+          </SocketProvider>
+        </ApiProvider>
       </Router>
     </>
   )

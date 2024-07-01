@@ -1,22 +1,22 @@
 import React, { useEffect, useState } from "react";
 import TicTacToePlus from "./TicTacToePlus.jsx";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Timer from "../Timer.jsx";
 import { useSocket } from "../../context/SocketContext.jsx";
 import GameId from "../GameId.jsx";
-import { useSearchParams } from 'react-router-dom';
+import { useApi } from "../../context/ApiContext.jsx";
 
 const GameOnline = () => {
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
+    const {socket, cookies} = useSocket();
+    const {fetchGame} = useApi();
+    const {gameId} = useParams();
+    const [gameData, setData] = useState(null);
     const [playerLeft, setPlayerLeft] = useState(false);
-    const [gameData, setData] = useState(null)
-    const [active, setActive] = useState(gameData && gameData.status === 'In Progress');
-    const socket = useSocket();
 
     const handleMove = (row, column, innerRow, innerColumn) => {
         socket.emit('move', {
-            gameId: searchParams.get('gameId'),
+            gameId: gameId,
             move: {
                 "row": row,
                 "column": column,
@@ -27,50 +27,42 @@ const GameOnline = () => {
     }
 
     const handleEndGame = () => {
-        setActive(false)
         navigate(0);
     }
 
-    const createGame = () => {
-        socket.emit('create_game');
-        socket.on("created", (data => {
-            navigate("/join")
-        }))
+    const quitGame = () => {
+        socket.emit('quit');
+        navigate("/")
     };
 
     useEffect(() => {
-        setPlayerLeft(false);
-        if (socket) {
-            socket.connect();
+        async function fetchData() {
             if (!gameData) {
-                console.log(gameData)
-                socket.emit('load_game', searchParams.get('gameId'));
-                socket.on("bothConnected", (data => {
-                    console.log(data)
-                    setPlayerLeft(false)
-                    setData(data)
-                    setActive(data.status !== 'Completed')
-                }))
+                socket.emit("load_game", gameId)
+                let game = cookies.get(gameId)
+                console.log(game)
+                if (!game) {
+                    game = await fetchGame(gameId);
+                }
+
+                setData(game)
+                setPlayerLeft(game.playerLeft)
             }
-            socket.on("playerMoved", (data => {
-                setData(data)
-                console.log(data)
-            }))
-
-            socket.on("playerLeft", (data) => {
-                setPlayerLeft(true)
-            })
-            return () => {
-                socket.disconnect();
-            };
         }
+        if (socket) {
+            socket.on("playerMoved", (data => {
+                cookies.set(data.id, data, {maxAge: 600})
+                setData(data)
+            }))
+            socket.on('playerLeft', (data => {
+                setPlayerLeft(data.playerLeft)
+            }))
+        }
+        fetchData();
+        setPlayerLeft(false);
     }, [socket])
-    if (playerLeft) {
-        return <div>Player Left... Waiting for connection</div>
-    }
 
-
-    if (!gameData) {
+    if (!gameData || playerLeft) {
         return <div>Loading...Game...</div>
     }
     return (
@@ -79,14 +71,14 @@ const GameOnline = () => {
             nextMove={gameData.nextMove}
             step={gameData.step}
             handleMove={handleMove}
-            restart={createGame}
+            quit={quitGame}
             player={gameData.player}
             history={gameData.historyState}
             status={gameData.status}
             winner={gameData.winner}
-            gameId={<GameId gameId={searchParams.get('gameId')} />}
+            gameId={<GameId gameId={gameId} />}
         >
-            <Timer isActive={active} expireAt={new Date(gameData.expireAt)} handleEndGame={handleEndGame} />
+            <Timer isActive={gameData && gameData.status === 'In Progress'} expireAt={new Date(gameData.expireAt)} handleEndGame={handleEndGame} />
         </TicTacToePlus>
     )
 }

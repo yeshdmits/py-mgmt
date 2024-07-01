@@ -1,7 +1,7 @@
 from flask import Flask, request, render_template
 from flask_cors import CORS
 from flask_socketio import SocketIO, Namespace, emit
-from game import disconnect_player_by_id, create_game, get_game_by_id, connectPlayer, move_game, read_all, bot_move
+import game
 
 app = Flask(__name__, static_folder="../../site/dist/assets", template_folder="../../site/dist")
 CORS(app)
@@ -12,8 +12,8 @@ class GameNamespace(Namespace):
         print(f"Client connected: [{request.sid}]")
 
     def on_disconnect(self):
-        print("Client disconnected")
-        result = disconnect_player_by_id(request.sid)
+        print(f"Client disconnected: [{request.sid}]")
+        result = game.disconnect_player_by_id(request.sid)
         if result and result.status != 'Completed':
             if result.gameContext.player1.connected:
                 emit('playerLeft', result.to_dict(), to=result.gameContext.player1.playerSid)
@@ -21,26 +21,32 @@ class GameNamespace(Namespace):
                 emit('playerLeft', result.to_dict(), to=result.gameContext.player2.playerSid)
         
     def on_create_game(self, data):
-        result = create_game(request.sid, data)
+        print(f"Create Game: [{request.sid}]")
+        result = game.create_game(request.sid, data)
         emit('created', result, to=request.sid)
 
     def on_load_game(self, data):
-        game_db = get_game_by_id(data)
+        print(f"Load Game: [{request.sid}]")
+        game_db = game.get_game_by_id(data)
         
         if game_db.status == 'Completed':
             emit('bothConnected', game_db.to_dict(), to=request.sid)
             return
         
-        result = connectPlayer(game_db, request.sid)
+        result = game.connectPlayer(game_db, request.sid)
         if result:
+            print(f"All players connected: [{result.to_dict()}]")
             player1Context = result.getPlayer1Context()
             emit('bothConnected', player1Context, to=player1Context["player"]["sid"])
             if not result.isBotPlayer:
                 player2Context = result.getPlayer2Context()
                 emit('bothConnected', player2Context, to=player2Context["player"]["sid"])
+    def on_quit(self):
+        print(f"On quit: [{request.sid}]")
+        self.on_disconnect()
 
     def on_move(self, data):
-        result = move_game(data["gameId"], data["move"], request.sid)
+        result = game.move_game(data["gameId"], data["move"], request.sid)
         if result:
             player1Context = result.getPlayer1Context()
             emit('playerMoved', player1Context, to=player1Context["player"]["sid"])
@@ -68,13 +74,16 @@ def not_found(e):
     return render_template("index.html")
 @app.route("/api/list")
 def fetch_list():
-    return read_all()
+    return game.read_all()
+@app.route("/api/game/<gameId>")
+def fetch_game(gameId):
+    return game.get_game_by_id(gameId).to_dict()
 
 @app.route("/api")
 def random_move():
-    bot_move(request.args.get('id'))
+    game.bot_move(request.args.get('id'))
 
 GEVENT_SUPPORT=True
 if __name__ == '__main__':
-    socketio.run(app, debug=True, log_output=True)
+    socketio.run(app, debug=True, log_output=True, host='0.0.0.0', port=4321)
 

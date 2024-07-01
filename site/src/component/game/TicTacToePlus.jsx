@@ -8,8 +8,8 @@ const TicTacToePlus = (props) => {
     const [nextTurn, setNextTurn] = useState(props.nextMove);
     const cross = props.step === 1
 
-    const handleRestart = () => {
-        props.restart();
+    const handleQuit = () => {
+        props.quit();
     }
 
     useEffect(() => {
@@ -84,9 +84,9 @@ const TicTacToePlus = (props) => {
                 })
                 }
             </div>
-            <div onClick={handleRestart}
+            <div onClick={handleQuit}
                 className="w-full mt-4 flex items-center justify-center bg-orange-200 rounded-lg text-gray-800 hover:cursor-pointer hover:bg-orange-400 hover:text-gray-100 h-[2.5rem]">
-                Restart
+                Quit
             </div>
         </div>
     );

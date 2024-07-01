@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, createSearchParams } from "react-router-dom";
-import { useSocket } from "../../context/SocketContext";
+import { useNavigate } from "react-router-dom";
+import { useApi } from "../../context/ApiContext";
 
 const GameList = (props) => {
     const [dataList, setDataList] = useState([])
-    const navigate = useNavigate()
-    const socket = useSocket()
+    const navigate = useNavigate();
+
+    const {fetchGames} = useApi();
 
     const formatISODate = (isoString) => {
         const date = new Date(isoString);
@@ -37,27 +38,18 @@ const GameList = (props) => {
         if (props.isNavOpen) {
             return;
         }
-        // socket.emit('load_game', searchParams.get('gameId'));
-        navigate({
-            pathname: "/play",
-            search: `?${createSearchParams({
-                gameId: item.id
-            })}`
-        })
+        navigate("/play/" + item.id)
     }
 
     useEffect(() => {
-        async function fetchData() {
-            try {
-                const response = await fetch('http://localhost:5000/api/list');
-                const data = await response.json();
-                setDataList(data)
-            } catch (error) {
-                console.error('Error fetching data from REST API:', error);
-            }
-        }
-        
-        fetchData()
+        async function fetch() {
+            const games = await fetchGames();
+            setDataList(games.sort((o1, o2) => {
+                return new Date(o2.createdAt) - new Date(o1.createdAt);
+            }))
+            console.log(games)
+        };
+        fetch()
     }, [])
 
     return (

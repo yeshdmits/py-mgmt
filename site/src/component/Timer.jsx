@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 const Timer = (props) => {
     const [intervalRef, setIntervalRef] = useState(null);
@@ -16,7 +16,7 @@ const Timer = (props) => {
         } else {
             clearInterval(intervalRef);
         }
-    })
+    }, [props.isActive])
 
     const formatSeconds = (seconds) => {
         if (seconds <= 0) {

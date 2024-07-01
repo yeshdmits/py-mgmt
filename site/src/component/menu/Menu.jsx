@@ -1,47 +1,27 @@
-import React, { useEffect } from "react";
-import { useNavigate, createSearchParams } from "react-router-dom";
-import { useSocket } from '../../context/SocketContext.jsx'
+import React from "react";
 
-const Menu = () => {
-    const navigate = useNavigate();
-    const socket = useSocket();
+const menuItemCss = "mt-4 flex items-center justify-center border rounded-lg text-white bg-violet-400 hover:cursor-pointer hover:bg-green-400 hover:text-gray-100 h-[4rem] w-[90vw]";
 
-    const createGame = () => {
-        socket.emit('create_game', false);
-        socket.on("created", (data => {
-            navigate({
-                pathname: "/join",
-                search: `?${createSearchParams({
-                    gameId: data
-                })}`
-            })
-        }))
-    };
-
-    const joinGame = () => {
-        navigate("/join")
-    };
-
-    useEffect(() => {
-    }, []);
-
+const Menu = (props) => {
     return (
         <>
-            <div className="flex grow">
-                <div className="flex flex-col items-center justify-center grow">
+            <div className="flex grow pt-8">
+                <div className="flex flex-col items-center justify-start grow">
                     <div
-                        className="flex items-center justify-center bg-green-200 rounded-lg text-gray-800 hover:cursor-pointer hover:bg-green-400 hover:text-gray-100 h-[5.5rem] w-[8.5rem]"
-                        onClick={createGame}>
-                        Create Game</div>
-
-                    <div className="flex items-center justify-center h-[5.5rem]">
-                        OR
+                        className={menuItemCss}
+                        onClick={props.allGames}>
+                        Home
                     </div>
                     <div
-                        className="flex items-center justify-center bg-orange-200 rounded-lg text-gray-800 my-2 hover:cursor-pointer hover:bg-orange-400 hover:text-gray-100 h-[5.5rem] w-[8.5rem]"
-                        onClick={joinGame}
-                    >
-                        Join Game</div>
+                        className={menuItemCss}
+                        onClick={props.create}>
+                        Play with friend
+                    </div>
+                    <div
+                        className={menuItemCss}
+                        onClick={props.join}>
+                        Play with Bot
+                    </div>
                 </div>
             </div>
         </>

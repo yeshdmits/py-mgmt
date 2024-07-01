@@ -1,39 +1,33 @@
-import React, { useEffect, useRef } from "react";
-import { useNavigate, createSearchParams } from "react-router-dom";
+import React, { useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSocket } from "../../context/SocketContext";
+import Menu from "./Menu";
 
 const NavBar = (props) => {
-    const socket = useSocket()
+    const {socket} = useSocket()
     const navigate = useNavigate();
     const navRef = useRef(null);
 
+    const allGames = () => {
+        props.setIsNavOpen(false)
+        navigate("/")
+    }
+
     const createGame = () => {
+        props.setIsNavOpen(false)
         socket.emit('create_game', false);
         socket.on("created", (data => {
-            props.setIsNavOpen(false);
-            navigate({
-                pathname: "/join",
-                search: `?${createSearchParams({
-                    gameId: data
-                })}`
-            })
-        }))
+            navigate("/join/" + data)
+        }));
     };
 
     const joinGame = () => {
         props.setIsNavOpen(false)
-        navigate("/join")
+        socket.emit('create_game', true);
+        socket.on("created", (data => {
+            navigate("/join/" + data)
+        }));
     };
-
-    const mainMenu = () => {
-        props.setIsNavOpen(false)
-        navigate("/")
-    };
-
-    const allGames = () => {
-        props.setIsNavOpen(false)
-        navigate("/games")
-    }
 
     return (
         <div className="bg-gray-100 flex flex-col items-center sticky w-full top-0 left-0 right-0'">
@@ -48,23 +42,14 @@ const NavBar = (props) => {
                     Tic-tac-toe Plus
                 </span>
             </div>
-            <nav ref={navRef} className={`fixed top-0 left-0 h-full bg-white shadow-md transform ${props.isNavOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 z-20`}>
+            <nav ref={navRef} className={`fixed top-0 left-0 w-full h-full bg-white shadow-md transform ${props.isNavOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 z-20`}>
                 <button
                     className="p-4 text-gray-600 text-2xl focus:outline-none"
                     onClick={() => props.setIsNavOpen(false)}
                 >
                     ×
                 </button>
-                <ul className="mt-8">
-                    <li onClick={mainMenu}
-                        className="p-4 border-b hover:cursor-pointer">Main Menu</li>
-                    <li onClick={createGame}
-                        className="p-4 border-b hover:cursor-pointer">Create Game</li>
-                    <li onClick={joinGame}
-                        className="p-4 border-b hover:cursor-pointer">Join Game</li>
-                    <li onClick={allGames}
-                        className="p-4 border-b hover:cursor-pointer">All Games</li>
-                </ul>
+                <Menu create={createGame} join={joinGame} allGames={allGames} />
             </nav>
 
         </div>

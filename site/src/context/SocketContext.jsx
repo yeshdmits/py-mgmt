@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { useNavigate, createSearchParams } from "react-router-dom";
+import { APP_URL } from './ApiContext';
+import Cookies from 'universal-cookie';
 
 const SocketContext = createContext(null);
 
@@ -11,30 +12,25 @@ export const useSocket = () => {
 export const SocketProvider = ({ children }) => {
     const [socket, setSocket] = useState(null);
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
+    const cookies = new Cookies(null, { path: '/' });
 
     useEffect(() => {
-        const newSocket = io('localhost:5000/game', {
+        const newSocket = io(APP_URL + '/game', {
             transports: ['websocket'],
             upgrade: false
         });
-
         newSocket.on('connect', () => {
+            console.log("Connected Websocket")
             setSocket(newSocket);
             setLoading(false);
         });
         newSocket.on("bothConnected", (data => {
-            console.log(data.id)
-            navigate({
-                pathname: "/play",
-                search: `?${createSearchParams({
-                    gameId: data.id
-                })}`
-            })
-        }))
+            console.log(data)
+            cookies.set(data.id, data, {maxAge: 600})
+        }));
         return () => {
             newSocket.disconnect();
-        };
+        }
     }, []);
 
     if (loading) {
@@ -42,7 +38,7 @@ export const SocketProvider = ({ children }) => {
     }
 
     return (
-        <SocketContext.Provider value={socket}>
+        <SocketContext.Provider value={{socket, cookies}}>
             {children}
         </SocketContext.Provider>
     );
