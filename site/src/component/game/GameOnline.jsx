@@ -62,7 +62,7 @@ const GameOnline = () => {
         setPlayerLeft(false);
     }, [socket])
 
-    if (!gameData || playerLeft) {
+    if (!gameData) {
         return <div>Loading...Game...</div>
     }
     return (
@@ -76,7 +76,7 @@ const GameOnline = () => {
             history={gameData.historyState}
             status={gameData.status}
             winner={gameData.winner}
-            gameId={<GameId gameId={gameId} />}
+            gameId={<GameId gameId={window.location.href} />}
         >
             <Timer isActive={gameData && gameData.status === 'In Progress'} expireAt={new Date(gameData.expireAt)} handleEndGame={handleEndGame} />
         </TicTacToePlus>

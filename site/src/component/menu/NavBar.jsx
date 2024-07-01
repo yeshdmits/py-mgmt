@@ -30,8 +30,8 @@ const NavBar = (props) => {
     };
 
     return (
-        <div className="bg-gray-100 flex flex-col items-center sticky w-full top-0 left-0 right-0'">
-            <div className="w-full bg-amber-500 p-1 text-white flex justify-around items-center shadow-md">
+        <div className="relative bg-gray-100 flex flex-col items-center w-full top-0 left-0 right-0'">
+            <div className="sticky w-full bg-violet-400 p-1 text-white flex justify-between items-center shadow-md">
                 <button
                     className="text-white text-2xl focus:outline-none"
                     onClick={() => props.setIsNavOpen(!props.isNavOpen)}
@@ -42,7 +42,7 @@ const NavBar = (props) => {
                     Tic-tac-toe Plus
                 </span>
             </div>
-            <nav ref={navRef} className={`fixed top-0 left-0 w-full h-full bg-white shadow-md transform ${props.isNavOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 z-20`}>
+            <nav ref={navRef} className={`fixed top-0 left-0 w-full h-full bg-white shadow-md transform ${props.isNavOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 z-30`}>
                 <button
                     className="p-4 text-gray-600 text-2xl focus:outline-none"
                     onClick={() => props.setIsNavOpen(false)}

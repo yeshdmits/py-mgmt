@@ -32,7 +32,7 @@ def move_game(game_uid, data, playerSid):
                 return result
             if result.status == 'completed':
                 return result
-            botMove = automation.random_move(result.state, result.nextMove)
+            botMove = automation.smarter_move(result.state, result.nextMove)
             return move(result, botMove[0], botMove[1], botMove[2], botMove[3])
     return False
 
@@ -41,8 +41,8 @@ def autoComplete():
     repository.autoComplete()
 def autoRemove():
     repository.autoRemove()
-# scheduler.add_job(autoComplete, trigger='interval', minutes=1)
-scheduler.add_job(autoRemove, trigger='interval', minutes=1)
+scheduler.add_job(autoComplete, trigger='interval', minutes=1)
+scheduler.add_job(autoRemove, trigger='interval', minutes=60)
 scheduler.start()
 
 def playerExistsBySid(gameId, playerSid):
@@ -84,39 +84,12 @@ def disconnectPlayer(game, sid):
     # player = result.gameContext.getBySid(sid)
     if game.gameContext.player1.playerSid == sid:
         game.gameContext.player1.connected = False
+        game.gameContext.player1.playerSid = None
     elif game.gameContext.player2.playerSid == sid:
         game.gameContext.player2.connected = False
-    game.expireAt = datetime.now() + timedelta(seconds=30)
+        game.gameContext.player2.playerSid = None
+    # game.expireAt = datetime.now() + timedelta(seconds=30)
     return repository.update(game)
-
-def checkWinnerInner(fields):
-    for i in range(len(fields)):
-        if fields[i][0] != 0 and fields[i][0] == fields[i][1] and fields[i][0] == fields[i][2]:
-            return fields[i][0]
-
-    for j in range(len(fields)):
-        if fields[0][j] != 0 and fields[0][j] == fields[1][j] and fields[0][j] == fields[2][j]:
-            return fields[0][j]
-
-    if fields[0][0] != 0 and fields[0][0] == fields[1][1] and fields[0][0] == fields[2][2]:
-        return fields[0][0]
-
-    if fields[0][2] != 0 and fields[0][2] == fields[1][1] and fields[0][2] == fields[2][0]:
-        return fields[0][2]
-
-    is_draw = True
-    for i in range(len(fields)):
-        for j in range(len(fields)):
-            if fields[i][j] == 0:
-                is_draw = False
-                break
-        if not is_draw:
-            break
-
-    if is_draw:
-        return 0
-
-    return None
 
 def move(game, row, column, i, j):
     if game.nextMove:
@@ -126,10 +99,10 @@ def move(game, row, column, i, j):
     if game.state[row][column][i][j] == 0:
         game.state[row][column][i][j] = game.step
         game.historyState[row][column][i][j] = game.step
-        winnerInner = checkWinnerInner(game.state[row][column])
+        winnerInner = automation.checkWinnerInner(game.state[row][column])
         if winnerInner != None:
             game.state[row][column] = winnerInner
-            winner = checkWinner(game.state)
+            winner = automation.checkWinner(game.state)
             if winner != None:
                 game.winner = winner
                 game.status = 'Completed'
@@ -150,31 +123,3 @@ def move(game, row, column, i, j):
         game.step = 1
     return repository.update(game)
 
-def checkWinner(fields):
-    for i in range(len(fields)):
-        if isinstance(fields[i][0], int) and fields[i][0] == fields[i][1] and fields[i][0] == fields[i][2]:
-            return fields[i][0]
-
-    for j in range(len(fields)):
-        if isinstance(fields[0][j], int) and fields[0][j] == fields[1][j] and fields[0][j] == fields[2][j]:
-            return fields[0][j]
-
-    if isinstance(fields[0][0], int) and fields[0][0] == fields[1][1] and fields[0][0] == fields[2][2]:
-        return fields[0][0]
-
-    if isinstance(fields[0][2], int) and fields[0][2] == fields[1][1] and fields[0][2] == fields[2][0]:
-        return fields[0][2]
-
-    is_draw = True
-    for i in range(len(fields)):
-        for j in range(len(fields)):
-            if not isinstance(fields[i][j], int):
-                is_draw = False
-                break
-        if not is_draw:
-            break
-
-    if is_draw:
-        return 0
-
-    return None

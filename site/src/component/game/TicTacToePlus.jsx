@@ -85,7 +85,7 @@ const TicTacToePlus = (props) => {
                 }
             </div>
             <div onClick={handleQuit}
-                className="w-full mt-4 flex items-center justify-center bg-orange-200 rounded-lg text-gray-800 hover:cursor-pointer hover:bg-orange-400 hover:text-gray-100 h-[2.5rem]">
+                className="w-full mt-4 flex items-center justify-center bg-violet-200 rounded-lg text-gray-800 hover:cursor-pointer hover:bg-violet-400 hover:text-gray-100 h-[2.5rem]">
                 Quit
             </div>
         </div>
