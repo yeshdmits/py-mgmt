@@ -4,15 +4,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import Timer from "../Timer.jsx";
 import { useSocket } from "../../context/SocketContext.jsx";
 import GameId from "../GameId.jsx";
-import { useApi } from "../../context/ApiContext.jsx";
 
 const GameOnline = () => {
     const navigate = useNavigate();
     const {socket, cookies} = useSocket();
-    const {fetchGame} = useApi();
     const {gameId} = useParams();
     const [gameData, setData] = useState(null);
-    const [playerLeft, setPlayerLeft] = useState(false);
 
     const handleMove = (row, column, innerRow, innerColumn) => {
         socket.emit('move', {
@@ -39,14 +36,10 @@ const GameOnline = () => {
         async function fetchData() {
             if (!gameData) {
                 socket.emit("load_game", gameId)
-                let game = cookies.get(gameId)
-                console.log(game)
-                if (!game) {
-                    game = await fetchGame(gameId);
-                }
-
-                setData(game)
-                setPlayerLeft(game.playerLeft)
+                socket.on("bothConnected", ((data) => {
+                    console.log(data)
+                    setData(data)
+                }))
             }
         }
         if (socket) {
@@ -54,13 +47,9 @@ const GameOnline = () => {
                 cookies.set(data.id, data, {maxAge: 600})
                 setData(data)
             }))
-            socket.on('playerLeft', (data => {
-                setPlayerLeft(data.playerLeft)
-            }))
         }
         fetchData();
-        setPlayerLeft(false);
-    }, [socket])
+    }, [socket]);
 
     if (!gameData) {
         return <div>Loading...Game...</div>

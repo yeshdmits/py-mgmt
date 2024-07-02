@@ -1,12 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApi } from "../../context/ApiContext";
+import { useSocket } from "../../context/SocketContext";
+import { ErrorContext } from "../error/ErrorContext";
 
 const GameList = (props) => {
     const [dataList, setDataList] = useState([])
     const navigate = useNavigate();
 
     const {fetchGames} = useApi();
+    const {socket} = useSocket();
+
+    const joinGame = () => {
+        socket.emit('create_game', true);
+        socket.on("created", (data => {
+            navigate("/join/" + data)
+        }));
+    };
 
     const formatISODate = (isoString) => {
         const date = new Date(isoString);
@@ -34,11 +44,12 @@ const GameList = (props) => {
         return '0/2';
     }
 
-    const handleItemClick = (item) => {
+    const handleItemClick = async (item) => {
         if (props.isNavOpen) {
             return;
         }
-        navigate("/play/" + item.id)
+        // socket.emit("load_game", item.id)
+        navigate("/join/" + item.id)
     }
 
     useEffect(() => {
@@ -51,6 +62,14 @@ const GameList = (props) => {
         };
         fetch()
     }, [])
+
+    if (dataList && dataList.length === 0) {
+        return (
+            <div className="w-full p-2 space-y-4">
+                <ErrorContext message="No games are available." status="404" reset={joinGame} action={"Play with Bot"}/>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full p-2 space-y-4">

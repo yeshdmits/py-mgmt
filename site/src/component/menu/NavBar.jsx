@@ -9,11 +9,14 @@ const NavBar = (props) => {
     const navRef = useRef(null);
 
     const allGames = () => {
+        socket.emit("quit")
         props.setIsNavOpen(false)
         navigate("/")
     }
 
     const createGame = () => {
+        socket.emit("quit")
+        navigate("/")
         props.setIsNavOpen(false)
         socket.emit('create_game', false);
         socket.on("created", (data => {
@@ -22,6 +25,8 @@ const NavBar = (props) => {
     };
 
     const joinGame = () => {
+        socket.emit("quit")
+        navigate("/")
         props.setIsNavOpen(false)
         socket.emit('create_game', true);
         socket.on("created", (data => {

@@ -89,10 +89,14 @@ def autoComplete():
 
 def autoRemove():
     query = { 
+        # "expireAt": { "$lt": (datetime.now(pytz.utc)).isoformat()}
         "expireAt": { "$lt": (datetime.now(pytz.utc) - timedelta(minutes=60)).isoformat()}
     }
     result = games.delete_many(query)
     print("Number of documents deleted:", result.deleted_count)
+
+def checkCanCreate():
+    return len(read_all()) < 1000
 
 # Utils
 def round_to_nearest_minute(dt):

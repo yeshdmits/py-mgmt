@@ -71,7 +71,7 @@ const TicTacToePlus = (props) => {
                                             active={nextTurn === null || (key === nextTurn.row && index === nextTurn.column)}
                                             cross={cross}
                                             fields={i}
-                                            canMove={props.status === 'In Progress' && props.player.move}
+                                            canMove={props.status === 'In Progress' && props.player?.move}
                                             handleMove={props.handleMove}
                                             history={props.history[key][index]}
                                         />

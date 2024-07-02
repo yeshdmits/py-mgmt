@@ -1,7 +1,8 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO, Namespace, emit
 import game
+from game import BadRequest, NotFound
 
 app = Flask(__name__, static_folder="../../site/dist/assets", template_folder="../../site/dist")
 CORS(app)
@@ -22,15 +23,26 @@ class GameNamespace(Namespace):
         
     def on_create_game(self, data):
         print(f"Create Game: [{request.sid}]")
-        result = game.create_game(request.sid, data)
-        emit('created', result, to=request.sid)
+        try:
+            result = game.create_game(request.sid, data)
+            emit('created', result, to=request.sid)
+        except BadRequest as e:
+            emit('error', {'message': e.args[0], 'status': 400}, to=request.sid)
+        
 
     def on_load_game(self, data):
         print(f"Load Game: [{request.sid}]")
-        game_db = game.get_game_by_id(data)
+        try:
+            game_db = game.get_game_by_id(data)
+        except NotFound as e:
+            emit('error', {'message': e.args[0], 'status': 404}, to=request.sid)
+            return
         
         if game_db.status == 'Completed':
             emit('bothConnected', game_db.to_dict(), to=request.sid)
+            return
+        
+        if game_db.gameContext.player1.connected and game_db.gameContext.player2.connected:
             return
         
         result = game.connectPlayer(game_db, request.sid)
@@ -54,23 +66,14 @@ class GameNamespace(Namespace):
                 player2Context = result.getPlayer2Context()
                 emit('playerMoved', player2Context, to=player2Context["player"]["sid"])
 
-    def handleNotFoundError(self, data, sid):
-        emit('error', {
-                "status" : 404,
-                "message": f"We couldn't locate the game you requested (ID: {data})."
-            }, to=sid)
-        
-        emit('error', f"We couldn't locate the game you requested (ID: {data}).", to=sid)
-        
-
 socketio.on_namespace(GameNamespace('/game'))
 
+@app.errorhandler(404)
+def not_found(e):
+    return render_template("index.html")
 
 @app.route("/")
 def hello_world():
-    return render_template("index.html")
-@app.errorhandler(404)
-def not_found(e):
     return render_template("index.html")
 @app.route("/api/list")
 def fetch_list():

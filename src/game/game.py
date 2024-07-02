@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 # from flask_apscheduler import APScheduler
 from apscheduler.schedulers.background import BackgroundScheduler
 import repository
@@ -12,7 +12,9 @@ def read_all():
     return repository.read_all()
 
 def create_game(player_sid, isBotPlayer):
-    return repository.create(player_sid, isBotPlayer)
+    if repository.checkCanCreate():
+        return repository.create(player_sid, isBotPlayer)
+    raise BadRequest("Too many games are in progress.")
 
 def get_game_by_id(game_uid):
     return repository.read(game_uid)
@@ -42,7 +44,7 @@ def autoComplete():
 def autoRemove():
     repository.autoRemove()
 scheduler.add_job(autoComplete, trigger='interval', minutes=1)
-scheduler.add_job(autoRemove, trigger='interval', minutes=60)
+scheduler.add_job(autoRemove, trigger='interval', minutes=1)
 scheduler.start()
 
 def playerExistsBySid(gameId, playerSid):
@@ -69,11 +71,12 @@ def connectPlayer(game, sid):
         game.gameContext.player2.playerSid = sid
         game.gameContext.player2.connected = True
 
-    game.expireAt = game.createdAt + timedelta(minutes=10)
 
     connected = game.gameContext.player1.connected and game.gameContext.player2.connected
-    if connected and not (game.gameContext.player1.playerMove or game.gameContext.player1.playerMove):
-        game.gameContext.player1.playerMove = True
+    if connected:
+        game.expireAt = game.createdAt + timedelta(minutes=10)
+        if not (game.gameContext.player1.playerMove or game.gameContext.player1.playerMove):
+            game.gameContext.player1.playerMove = True
 
     result = repository.update(game)
     if connected:
@@ -81,14 +84,12 @@ def connectPlayer(game, sid):
     return connected
 
 def disconnectPlayer(game, sid):
-    # player = result.gameContext.getBySid(sid)
     if game.gameContext.player1.playerSid == sid:
         game.gameContext.player1.connected = False
         game.gameContext.player1.playerSid = None
     elif game.gameContext.player2.playerSid == sid:
         game.gameContext.player2.connected = False
         game.gameContext.player2.playerSid = None
-    # game.expireAt = datetime.now() + timedelta(seconds=30)
     return repository.update(game)
 
 def move(game, row, column, i, j):
@@ -123,3 +124,9 @@ def move(game, row, column, i, j):
         game.step = 1
     return repository.update(game)
 
+
+
+class BadRequest(Exception):
+    pass
+class NotFound(Exception):
+    pass

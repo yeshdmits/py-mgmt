@@ -5,7 +5,7 @@ const Timer = (props) => {
     const [seconds, setSeconds] = useState((props.expireAt - new Date()) / 1000)
     useEffect(() => {
         if (props.isActive) {
-            if (seconds <= 0) {
+            if (seconds == 0) {
                 clearInterval(intervalRef);
                 props.handleEndGame();
             } else {

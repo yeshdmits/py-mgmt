@@ -12,9 +12,6 @@ const LoadingDisplay = () => {
     useEffect(() => {
         if (socket) {
             socket.emit('load_game', gameId);
-            socket.on("bothConnected", (data => {
-                navigate("/play/" + data.id)
-            }));
         }
     }, [])
 
@@ -22,7 +19,7 @@ const LoadingDisplay = () => {
         return (
             <div className="w-full">
                 <div className="flex items-center justify-center my-5">
-                    Please share the Link with your friend:
+                    Please share the Link with your friend
                 </div>
                 <GameId gameId={window.location.href} />
             </div>
