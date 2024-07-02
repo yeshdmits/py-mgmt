@@ -3,13 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { useApi } from "../../context/ApiContext";
 import { useSocket } from "../../context/SocketContext";
 import { ErrorContext } from "../error/ErrorContext";
+import Winner from "./Winner";
+import View from '../../assets/view.svg?react'
 
 const GameList = (props) => {
     const [dataList, setDataList] = useState([])
     const navigate = useNavigate();
 
-    const {fetchGames} = useApi();
-    const {socket} = useSocket();
+    const { fetchGames } = useApi();
+    const { socket } = useSocket();
 
     const joinGame = () => {
         socket.emit('create_game', true);
@@ -48,7 +50,6 @@ const GameList = (props) => {
         if (props.isNavOpen) {
             return;
         }
-        // socket.emit("load_game", item.id)
         navigate("/join/" + item.id)
     }
 
@@ -66,7 +67,7 @@ const GameList = (props) => {
     if (dataList && dataList.length === 0) {
         return (
             <div className="w-full p-2 space-y-4">
-                <ErrorContext message="No games are available." status="404" reset={joinGame} action={"Play with Bot"}/>
+                <ErrorContext message="No games are available." status="404" reset={joinGame} action={"Play with Bot"} />
             </div>
         );
     }
@@ -76,32 +77,28 @@ const GameList = (props) => {
             {
                 dataList && dataList.map((item, index) => {
                     return (
-                        <div className="border rounded p-4" key={index}>
-                            <div className="flex justify-between mb-2">
-                                <div className="flex flex-col justify-around items-start">
-                                    <div>
-                                        <span className="font-semibold">Created:</span> {formatISODate(item.createdAt)}
-                                    </div>
-                                    {/* <div>
-                                        <span className="font-semibold">Until:</span> {formatISODate(item.expireAt)}
-                                    </div> */}
+                        <div className="flex border justify-between rounded" key={index}>
+                            <div className="flex flex-col justify-between p-4">
+                                <div>
+                                    <span className="font-semibold">Created:</span> {formatISODate(item.createdAt)}
                                 </div>
-                                <div className="flex flex-col justify-around items-start">
-                                    <div>
-                                        <span className="font-semibold">Status:</span> {item.status}
-                                    </div>
-                                    <div>
-                                        <span className="font-semibold">Winner:</span> {item.winner}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex justify-between">
                                 <div>
                                     <span className="font-semibold">Players:</span> {formatPlayers(item.gameContext)}
                                 </div>
-                                <div onClick={() => handleItemClick(item)} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                                    <div>Join</div>
+                            </div>
+                            <div onClick={() => handleItemClick(item)}
+                                className="flex flex-col justify-between bg-violet-300 hover:bg-violet-400 rounded pt-4 px-4">
+                                <div>
+                                    <span className="font-semibold">Status:</span> {item.status}
                                 </div>
+                                <div className="flex justify-between w-full">
+                                    <span className="font-semibold">Winner:</span>
+                                    <div><Winner winner={item.winner} /></div>
+                                </div>
+                                <div className="flex justify-center items-end">
+                                    <View width="40px" height="40px" />
+                                </div>
+
                             </div>
                         </div>
                     )

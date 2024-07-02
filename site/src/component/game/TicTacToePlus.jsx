@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Cross from '../../assets/cross.svg?react'
 import Circle from '../../assets/circle.svg?react'
 import TicTacToeItem from "./TicTacToeItem.jsx";
+import Winner from "./Winner.jsx";
 
 const TicTacToePlus = (props) => {
     const [state, setState] = useState(props.state);
@@ -45,12 +46,7 @@ const TicTacToePlus = (props) => {
                             Winner:
                         </div>
                         <div>
-                            {props.winner === 1 ?
-                                <Cross width='24px' height='24px' fill="#d9004c" />
-                                : props.winner === -1 ?
-                                <Circle width='24px' height='24px' fill="#0033aa" stroke="#0033aa" strokeWidth={0} />
-                                : "Draw"
-                            }
+                            <Winner winner={props.winner} />
                         </div>
                     </div>
                 }
