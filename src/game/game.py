@@ -32,7 +32,7 @@ def move_game(game_uid, data, playerSid):
         if result:
             if not result.isBotPlayer:
                 return result
-            if result.status == 'completed':
+            if result.status == 'Completed':
                 return result
             botMove = automation.smarter_move(result.state, result.nextMove)
             return move(result, botMove[0], botMove[1], botMove[2], botMove[3])

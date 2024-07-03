@@ -9,7 +9,7 @@ const GameOnline = () => {
     const navigate = useNavigate();
     const {socket, cookies} = useSocket();
     const {gameId} = useParams();
-    const [gameData, setData] = useState(null);
+    const [gameData, setData] = useState();
 
     const handleMove = (row, column, innerRow, innerColumn) => {
         socket.emit('move', {
@@ -35,6 +35,7 @@ const GameOnline = () => {
     useEffect(() => {
         async function fetchData() {
             if (!gameData) {
+                setData(cookies.get(gameId))
                 socket.emit("load_game", gameId)
                 socket.on("bothConnected", ((data) => {
                     console.log(data)
@@ -43,12 +44,12 @@ const GameOnline = () => {
             }
         }
         if (socket) {
+            fetchData();
             socket.on("playerMoved", (data => {
                 cookies.set(data.id, data, {maxAge: 600})
                 setData(data)
             }))
         }
-        fetchData();
     }, [socket]);
 
     if (!gameData) {

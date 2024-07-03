@@ -36,7 +36,7 @@ export const SocketProvider = ({ children }) => {
         newSocket.on("bothConnected", (data => {
             console.log("bothConnected")
             cookies.set(data.id, data, {maxAge: 600})
-             navigate("/play/" + data.id)
+            navigate("/play/" + data.id)
 
         }));
         newSocket.on("error", (data => {
