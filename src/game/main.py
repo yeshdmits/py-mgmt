@@ -99,8 +99,8 @@ if __name__ == '__main__':
     eventlet.wsgi.server(
     eventlet.wrap_ssl(
         eventlet.listen(('0.0.0.0', 4321)), 
-        certfile='./certs/certificate.pem', 
-        keyfile='./certs/key.pem', 
+        certfile='../../certs/certificate.pem', 
+        keyfile='../../certs/key.pem', 
         server_side=True), 
     app)
 

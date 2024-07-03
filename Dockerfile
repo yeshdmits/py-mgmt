@@ -14,6 +14,7 @@ COPY requirements.txt pyproject.toml ./
 RUN pip install -r requirements.txt
 
 COPY src ./src
+COPY certs ./certs
 COPY --from=frontend-builder /app/frontend/dist /app/site/dist
 ENV mongo_password=chageit
 CMD ["python", "./src/game/main.py" ]
