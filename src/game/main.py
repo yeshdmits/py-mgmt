@@ -1,11 +1,13 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template
 from flask_cors import CORS
+import eventlet
+import ssl
 from flask_socketio import SocketIO, Namespace, emit
 import game
 from game import BadRequest, NotFound
 
 app = Flask(__name__, static_folder="../../site/dist/assets", template_folder="../../site/dist")
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
 socketio = SocketIO(app, cors_allowed_origins="*", async_method='eventlet')
 
 class GameNamespace(Namespace):
@@ -87,6 +89,18 @@ def random_move():
     game.bot_move(request.args.get('id'))
 
 GEVENT_SUPPORT=True
+
+ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+ssl_context.load_cert_chain(certfile='./certs/certificate.pem', keyfile='./certs/key.pem')
+# ssl_context = ('./certs/certificate.pem', './certs/key.pem')
+
 if __name__ == '__main__':
-    socketio.run(app, debug=True, log_output=True, host='0.0.0.0', port=4321)
+    # socketio.run(app, debug=True, log_output=True, host='0.0.0.0', port=4321, ssl_context=ssl_context)
+    eventlet.wsgi.server(
+    eventlet.wrap_ssl(
+        eventlet.listen(('0.0.0.0', 4321)), 
+        certfile='./certs/certificate.pem', 
+        keyfile='./certs/key.pem', 
+        server_side=True), 
+    app)
 
